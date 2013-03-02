@@ -24,11 +24,10 @@
 //  GNU General Public License for more details.
 //
 
-
 class ParadoxPDF
 {
 
-    protected $paradoxPDFExec ;
+    protected $paradoxPDFExec;
     protected $paradoxPDFExtensionDir;
     protected $debugEnabled;
     protected $debugVerbose;
@@ -38,17 +37,16 @@ class ParadoxPDF
     protected $cacheEnabled;
     protected $size;
 
-
     function ParadoxPDF()
     {
         $paradoxPDFINI = eZINI::instance('paradoxpdf.ini');
         $this->cacheEnabled = ($paradoxPDFINI->variable('CacheSettings', 'PDFCache') == 'enabled');
         $this->debugEnabled = ($paradoxPDFINI->variable('DebugSettings', 'DebugPDF') == 'enabled');
         $this->debugVerbose = ($paradoxPDFINI->variable('DebugSettings', 'Verbose') == 'enabled');
-        $this->javaExec =  $paradoxPDFINI->variable('BinarySettings', 'JavaExecutable');
-        $this->cacheTTL =  $paradoxPDFINI->variable('CacheSettings','TTL');
+        $this->javaExec = $paradoxPDFINI->variable('BinarySettings', 'JavaExecutable');
+        $this->cacheTTL = $paradoxPDFINI->variable('CacheSettings', 'TTL');
         $this->paradoxPDFExec = eZDir::cleanPath('extension/paradoxpdf/bin/paradoxpdf.jar');
-        $this->tmpDir = eZDir::path(array(eZINI::instance()->variable( 'FileSettings', 'VarDir' ),'paradoxpdf'));
+        $this->tmpDir = eZDir::path(array(eZINI::instance()->variable('FileSettings', 'VarDir'), 'paradoxpdf'));
     }
 
     /**
@@ -72,8 +70,7 @@ class ParadoxPDF
 
     public function exportPDF($xhtml = '', $pdf_file_name = '', $keys, $subtree_expiry, $expiry, $ignore_content_expiry = false)
     {
-        if($pdf_file_name == '')
-        {
+        if ($pdf_file_name == '') {
             $pdf_file_name = 'file';
         }
 
@@ -82,50 +79,49 @@ class ParadoxPDF
         $mtime = eZDateTime::currentTimeStamp();
         $httpExpiry = $this->cacheTTL;
 
-        if($this->cacheEnabled)
-        {
+        if ($this->cacheEnabled) {
 
             $keys = self::getCacheKeysArray($keys);
 
-            $expiry = (is_numeric($expiry) ) ? $expiry : $this->cacheTTL;
+            $expiry = (is_numeric($expiry)) ? $expiry : $this->cacheTTL;
 
-            if($expiry > 0)
-            {
+            if ($expiry > 0) {
                 $httpExpiry = $expiry;
             }
 
-            if(isset($subtree_expiry)){
+            if (isset($subtree_expiry)) {
 
-                $ignore_content_expiry =  true;
+                $ignore_content_expiry = true;
             }
 
             list($handler, $data) = eZTemplateCacheBlock::retrieve($keys, $subtree_expiry, $expiry, !$ignore_content_expiry);
 
-            if ($data instanceof eZClusterFileFailure || $handler->size() == 0)
-            {
+            if ($data instanceof eZClusterFileFailure || $handler->size() == 0) {
                 $data = $this->generatePDF($xhtml);
 
                 // check if error occurred during pdf generation
-                if($data === false)
-                {
+                if ($data === false) {
                     return;
                 }
-                $handler->storeCache(array(  'scope'      => 'template-block',
-                                             'binarydata' => $data));
+
+                $handler->storeCache(array('scope' => 'template-block', 'binarydata' => $data));
+
+                $size = strlen($data);
+
+            } else {
+
+                $size = $handler->size();
+                $mtime = $handler->mtime();
             }
 
-            $size  = $handler->size();
-            $mtime = $handler->mtime();
-        }
-        else
-        {
+        } else {
             $data = $this->generatePDF($xhtml);
 
             // check if error occurred during pdf generation
-            if($data === false)
-            {
+            if ($data === false) {
                 return;
             }
+
             $size = $this->size;
         }
 
@@ -141,43 +137,38 @@ class ParadoxPDF
     public function generatePDF($xhtml)
     {
         //check if $tmpdir exists else try to create it
-        if(!eZFileHandler::doExists($this->tmpDir))
-        {
-            if(!eZDir::mkdir( $this->tmpDir, eZDir::directoryPermission(), true ))
-            {
+        if (!eZFileHandler::doExists($this->tmpDir)) {
+            if (!eZDir::mkdir($this->tmpDir, eZDir::directoryPermission(), true)) {
                 eZDebug::writeWarning("ParadoxPDF::generatePDF Error : could not create temporary directory $this->tmpDir ", 'ParadoxPDF::generatePDF');
-                eZLog::write("ParadoxPDF::generatePDF Error : could not create temporary directory $this->tmpDir ",'paradoxpdf.log');
+                eZLog::write("ParadoxPDF::generatePDF Error : could not create temporary directory $this->tmpDir ", 'paradoxpdf.log');
                 return false;
             }
-        }
-        elseif(!eZFileHandler::doIsWriteable($this->tmpDir))
-        {
+        } elseif (!eZFileHandler::doIsWriteable($this->tmpDir)) {
             //check if $tmpdir is writable
             eZDebug::writeWarning("ParadoxPDF::generatePDF Error : please make $this->tmpDir writable ", 'ParadoxPDF::generatePDF');
-            eZLog::write("ParadoxPDF::generatePDF Error : please make $this->tmpDir writable ",'paradoxpdf.log');
+            eZLog::write("ParadoxPDF::generatePDF Error : please make $this->tmpDir writable ", 'paradoxpdf.log');
             return false;
         }
 
-        $rand = md5('paradoxpdf'. getmypid() . mt_rand());
+        $rand = md5('paradoxpdf' . getmypid() . mt_rand());
         $tmpXHTMLFile = eZDir::path(array($this->tmpDir, "$rand.xhtml"));
         $tmpPDFFile = eZDir::path(array($this->tmpDir, "$rand.pdf"));
 
         //fix relative urls to match ez root directory
         $xhtml = $this->fixURL($xhtml);
 
-        eZFile::create($tmpXHTMLFile, false, $xhtml) ;
+        eZFile::create($tmpXHTMLFile, false, $xhtml);
 
         $pdfContent = '';
 
         //run jar in headless mode
-        $command = $this->javaExec." -Djava.awt.headless=true";
+        $command = $this->javaExec . " -Djava.awt.headless=true";
 
-        if($this->debugEnabled && $this->debugVerbose)
-        {
+        if ($this->debugEnabled && $this->debugVerbose) {
             $command .= " -Dxr.util-logging.loggingEnabled=true";
         }
 
-        $command .= " -jar ".$this->paradoxPDFExec." $tmpXHTMLFile $tmpPDFFile";
+        $command .= " -jar " . $this->paradoxPDFExec . " $tmpXHTMLFile $tmpPDFFile";
 
         //fix to get all command output
         $command .= "  2>&1";
@@ -186,8 +177,7 @@ class ParadoxPDF
         exec($command, $output, $returnCode);
 
         //Cant trust java return code so we test if a plain pdf file is genereated
-        if (!(eZFileHandler::doExists($tmpPDFFile) && $this->size=filesize($tmpPDFFile)))
-        {
+        if (!(eZFileHandler::doExists($tmpPDFFile) && $this->size = filesize($tmpPDFFile))) {
             $this->writeCommandLog($command, $output, false);
             return false;
         }
@@ -200,8 +190,7 @@ class ParadoxPDF
         //if debug enabled preseves the temporary pdf file
         //else remove all temporary files
 
-        if(!$this->debugEnabled)
-        {
+        if (!$this->debugEnabled) {
             eZFileHandler::unlink($tmpPDFFile);
             eZFileHandler::unlink($tmpXHTMLFile);
         }
@@ -219,19 +208,16 @@ class ParadoxPDF
      * @param $expiry  Not used
      * @return void
      */
-    public function flushPDF($data, $pdf_file_name='file', $size, $mtime, $expiry)
+    public function flushPDF($data, $pdf_file_name = 'file', $size, $mtime, $expiry)
     {
 
         //Fixing https issues by forcing file download
         $contentType = 'application/octet-stream';
-        $userAgent = eZSys::serverVariable( 'HTTP_USER_AGENT' );
+        $userAgent = eZSys::serverVariable('HTTP_USER_AGENT');
 
-        if(preg_match('%Opera(/| )([0-9].[0-9]{1,2})%', $userAgent))
-        {
+        if (preg_match('%Opera(/| )([0-9].[0-9]{1,2})%', $userAgent)) {
             $contentType = 'application/octetstream';
-        }
-        elseif(preg_match('/MSIE ([0-9].[0-9]{1,2})/', $userAgent))
-        {
+        } elseif (preg_match('/MSIE ([0-9].[0-9]{1,2})/', $userAgent)) {
             $contentType = 'application/force-download';
 
         }
@@ -242,11 +228,11 @@ class ParadoxPDF
         ob_clean();
 
         header('X-Powered-By: eZ Publish - ParadoxPDF');
-        header('Content-Type: '.$contentType);
+        header('Content-Type: ' . $contentType);
         header('Expires: Sat, 03 Jan 1970 00:00:00 GMT');
         header('Cache-Control: private');
-        header('Pragma: private',false);
-        header('Content-Disposition: attachment; filename="'.$pdf_file_name.'.pdf"');
+        header('Pragma: private', false);
+        header('Content-Disposition: attachment; filename="' . $pdf_file_name . '.pdf"');
         header('Content-Length: ' . $size);
         header('Content-Transfer-Encoding: binary');
         header('Accept-Ranges: bytes');
@@ -259,7 +245,6 @@ class ParadoxPDF
         eZExecution::cleanExit();
     }
 
-
     /**
      *  Generate cache  key array based on current user roles, requested url, layout
      *
@@ -267,34 +252,26 @@ class ParadoxPDF
      * @return array
      */
 
-    public function getCacheKeysArray( $userKeys )
+    public function getCacheKeysArray($userKeys)
     {
-        if(!is_array($userKeys))
-        {
+        if (!is_array($userKeys)) {
             $userKeys = array($userKeys);
         }
 
         $user = eZUser::currentUser();
         $limitedAssignmentValueList = $user->limitValueList();
         $roleList = $user->roleIDList();
-        $discountList = eZUserDiscountRule::fetchIDListByUserID( $user->attribute( 'contentobject_id' ) );
-        $currentSiteAccess = ( isset( $GLOBALS['eZCurrentAccess']['name'] ) ) ? $GLOBALS['eZCurrentAccess']['name']:false ;
+        $discountList = eZUserDiscountRule::fetchIDListByUserID($user->attribute('contentobject_id'));
+        $currentSiteAccess = (isset($GLOBALS['eZCurrentAccess']['name'])) ? $GLOBALS['eZCurrentAccess']['name'] : false;
         $res = eZTemplateDesignResource::instance();
         $keys = $res->keys();
-        $layout= ( isset( $keys['layout'] ) ) ? $keys['layout'] : false;
-        $uri = eZURI::instance( eZSys::requestURI() );
+        $layout = (isset($keys['layout'])) ? $keys['layout'] : false;
+        $uri = eZURI::instance(eZSys::requestURI());
         $actualRequestedURI = $uri->uriString();
         $userParameters = $uri->userParameters();
 
-        $cacheKeysArray = array('paradoxpdf',
-        $currentSiteAccess,
-        $layout,
-        $actualRequestedURI,
-        implode( '.', $userParameters ),
-        implode( '.', $roleList ),
-        implode( '.', $limitedAssignmentValueList),
-        implode( '.', $discountList ),
-        implode( '.', $userKeys ));
+        $cacheKeysArray = array('paradoxpdf', $currentSiteAccess, $layout, $actualRequestedURI, implode('.', $userParameters), implode('.', $roleList),
+                implode('.', $limitedAssignmentValueList), implode('.', $discountList), implode('.', $userKeys));
 
         return $cacheKeysArray;
 
@@ -308,24 +285,19 @@ class ParadoxPDF
      * @return Void
      */
 
-    private function writeCommandLog($command, $output, $status=false)
+    private function writeCommandLog($command, $output, $status = false)
     {
 
         $logMessage = implode("\n", $output);
 
-        if(!$status)
-        {
+        if (!$status) {
             eZDebug::writeError("An error occured during pdf generation please check var/log/paradoxpdf.log", 'ParadoxPDF::generatePDF');
-            eZLog::write("Failed executing command : $command , \n Output : $logMessage",'paradoxpdf.log');
-        }
-        elseif($this->debugEnabled)
-        {
-            eZLog::write("ParadoxPDF : PDF conversion successful: $command , \n Output : $logMessage",'paradoxpdf.log');
+            eZLog::write("Failed executing command : $command , \n Output : $logMessage", 'paradoxpdf.log');
+        } elseif ($this->debugEnabled) {
+            eZLog::write("ParadoxPDF : PDF conversion successful: $command , \n Output : $logMessage", 'paradoxpdf.log');
         }
 
     }
-
-
 
     /**
      *  Make image and css urls relative to ezpublish root directory
@@ -335,10 +307,10 @@ class ParadoxPDF
      * @return String html with fixed urls
      */
 
-    private function fixURL($html,$relative=false)
+    private function fixURL($html, $relative = false)
     {
-        $base_url = $relative ? '../..' : eZSys::serverURL() ;
-        $htmlfixed = preg_replace('#(<\s*(img|link)\s+[^>]*(href|src)\s*=\s*["\'])/?([^:"\'>]*)(["\'])#i', '$1'.$base_url.'/$4$5', $html);
+        $base_url = $relative ? '../..' : eZSys::serverURL();
+        $htmlfixed = preg_replace('#(<\s*(img|link)\s+[^>]*(href|src)\s*=\s*["\'])/?([^:"\'>]*)(["\'])#i', '$1' . $base_url . '/$4$5', $html);
         #$htmlfixed = preg_replace('#(@import)?\s*(url)?\s*(\()?\s*["\']/?([^"\'\);]*)["\']?\s*(\))?\s*;#i','$1 $2 $3"'.$base_url.'/$4"$5',$htmlfixed);
         return $htmlfixed;
     }
@@ -352,19 +324,17 @@ class ParadoxPDF
      * @return Boolean  Access status
      */
 
-    static function canPDFNode( $node_id)
+    static function canPDFNode($node_id)
     {
         $status = true;
-        if(eZINI::instance('paradoxpdf.ini')->variable('AccessSettings', 'UseContentPdfPolicy') == 'enabled')
-        {
+        if (eZINI::instance('paradoxpdf.ini')->variable('AccessSettings', 'UseContentPdfPolicy') == 'enabled') {
             $currentNode = eZContentObjectTreeNode::fetch($node_id);
             $status = $currentNode->canPdf();
         }
 
-        if(!$status)
-        {
+        if (!$status) {
             eZDebug::writeError('ParadoxPDF PDF Access denied', 'ParadoxPDF::canPDFNode');
-            eZLog::write('ParadoxPDF PDF Access denied','paradoxpdf.log');
+            eZLog::write('ParadoxPDF PDF Access denied', 'paradoxpdf.log');
         }
         return $status;
     }
@@ -375,10 +345,9 @@ class ParadoxPDF
      * @param  String
      * @return String sanitized string
      */
-    static function sanitize( $string)
+    static function sanitize($string)
     {
-        return eZURLAliasML::convertToAlias( $sanitized );
+        return eZURLAliasML::convertToAlias($sanitized);
     }
 
 }
-?>
