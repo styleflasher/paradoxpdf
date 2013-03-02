@@ -1,0 +1,110 @@
+V 2.1.5 :
+--------
+    * Fixed blank page after cache purge (caused by missing translation string)
+    * Fixed relative to absolute urls rewrite : all urls will be transformed
+    * Added DebugVerbose ini setting
+
+V 2.1.4 :
+--------
+    * Fixed isset
+
+V 2.1.3 :
+--------
+    * Fixed ignore_expiry_cache (thanks to Alex Yes)
+    * Fixed documentation typos
+
+
+V 2.1.2 :
+--------
+    * PDF File name is sanitized to prevent download injection attacks
+    * Fixed http headers issue in ssl mode with IE
+    * Fixed typo DebugPDF=disabled instead of DebugPDF=disabed (thanks to Børge Warvik)
+    * Documentation update
+
+V 2.1.1 :
+--------
+
+    * Updated node/view/pdf.tpl so ($viewmode $language_code $view_parameters
+      $collection_attributes $validation, $persistent_variable) still available
+      in default node/view/full.tpl
+    * Updated Roadmap
+    * Updated installation instructions (added autoload regeneration)
+
+
+V 2.1.0 :
+--------
+    * Added Check Access policies option
+    * Core CSS update for generic TOC
+    * Added PDFCache ini setting for developpers (developper mode)
+    * Enhanced browser cache handling
+    * Documentation updated
+
+V 2.0.1 :
+-------
+    * Added example path of java executable for windows
+    * Windows debug output fixed
+
+
+V 2.0 :
+------
+ ParadoxPDF changes :
+ --------------------
+      * Rebuild using xhtmlrendrer R8 Final
+      * Added TOC Table of content and PDF Bookmarks support
+      * Custom fonts embeeding
+      * Custom characters (Asian, Arabic, Greek ...) rendering documentation
+      * Template upgrade
+           o update of print-core css
+           /!\ WARNIG : Unfortunately, it wasn't possible to maintain backwards compatibility with the old
+                        -fs-move-to-flow approach and those properties have beenremoved in the xhtmlrendrer R8.
+                         The conversion to the new way of doing things should bestraightforward though.
+                         check paradoxpdf documentation and new print-core.css
+           o update paradoxpdf template operator call : check the documentation for more info
+
+      * paradoxpdf/tmp folder moved to var/paradoxpdf/ and  eZFile::getContents() removed (Merci Damien Pobel)
+      * Added example setting for java executable path on windows (Merci Jean-Yves Zinsou)
+
+
+ParadoxPDF includes new features of the new xhtmlrendrer R8: https://xhtmlrenderer.dev.java.net/
+
+Highlights of the changes (from xhtmlrendrer release news):
+    *  PDF
+          o Upgrade to use iText 2.0.8
+          o Support adding custom header properties on PDF output
+          o Add ability to set PDF version programmatically
+          o Add ability to manipulate PDF output document before it's closed
+          o Add ability to have different starting page number for first document in multiple documents
+          o Add API to retrieve PDF page and coordinates for boxes with an ID attribute
+          o Implement CMYK color support for PDF output
+          o Support encryption of PDF output
+    * General
+          o Expose copy of parsed entities from catalog.
+          o Preliminary support for data URLs
+          o Support True Type Collection (.ttc) files
+          o Preliminary support for Type 1 fonts
+          o Handle hidden form elements
+          o Rudimentary support for JavaScript links (from Dan Kaplan)
+    * CSS
+          o Prelimary support for @font-face rules
+          o Implement partial support for leader and target-counter (patch from Karl Tauber)
+          o Table pagination. When turned on (by setting the -fs-table-pagination property to paginate
+            vs. a default of auto ), tables and table cells will be closed (with appropriate borders and
+            padding) when a page ends and reopened when a page starts. Additionally, a table's thead and
+            tfoot will be repeated on each page.
+          o CSS3 margin boxes
+          o Named pages
+          o Running elements
+          o Namespace-aware CSS matching, for example, with attributes [although this also applies to
+            elements]
+          o Pseudo-elements may now be specified with a double colon
+          o Substring selectors
+          o The background property can now be used in a @page context – CSS 3 spec
+          o Custom property to limit the scope of the page and pages counters to a portion of the document
+          o Custom property that instructs FS to try to avoid breaking a box so that only borders and padding
+            appear on a page
+
+
+
+
+
+

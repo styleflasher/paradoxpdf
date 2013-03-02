@@ -1,0 +1,394 @@
+Extension : paradoxpdf
+Requires  : eZ Publish 4.x.x (not tested on 3.X but can be easily customized for)
+Author    : Mohamed Karnichi karnichi[at]gmail[dot]com
+
+
+Make link to PDF view :
+----------------------
+- For node content there are two ways :
+
+  - point to : content/view/pdf/<nodeID>
+               this will automatically load the paradoxpdf_layout.tpl layout
+               example : content/view/pdf/2
+  - if you are concerned by SEO you can use  layout/set/pdf/<url_alias>
+               example : layout/set/pdf/Home
+               (be careful with this approach the node/view/full.tpl template will be used instead of node/view/pdf.pdf
+               but you can add an extra parameter to the url)
+
+- For module views:
+
+  - point to : layout/set/pdf/<module_name>/<module_view>/<extra-params>
+               example : layout/set/pdf/mymodule/myview/fixedparamter1/(viewparameter1_name)/viewparameter1_value
+                         layout/set/pdf/shop/orderview/4
+
+  - or directly set the layout in your module view:
+               $Result['pagelayout'] = 'paradoxpdf_layout.tpl';
+
+
+Customize PDF View :
+--------------------
+
+  - When you make your design : comment paradoxpdf operator call, and the set-block function call:
+                                {*set-block variable=$xhtml*}...{*/set-block*}, and check your design in your prefered
+                                browser (firefox recommended). Then when everything looks fine uncomment
+                                the paradoxpdf operator call.
+  - You can customize the PDF view just as any html view : just override the node/view/pdf.tpl (you deal with pdf.tpl not full.tpl)
+  - To avoid clearing the PDF cache each time you modify the template to check the PDF, just disable the PDFCache in paradoxpdf.ini
+    Make sure to enable it in production environment.
+  - Fore more information take a look to : design/templates/pdf_export_layout.tpl
+
+
+
+paradoxpdf operator :
+--------------------
+  Usage :
+        -Full : paradoxpdf(hash('xhtml', $xhtml,
+                                'pdf_file_name', $pdf_file_name,
+                                'keys', $keys,
+                                'subtree_expiry', $subtree_expiry,
+                                'expiry', $expiry ,
+                                'ignore_content_expiry', $ignore_content_expiry))
+               Note : Combining all parameters don't make sense : for example, when you set subtree_expiry parameter
+                      the ignore_content_expiry parameter well be automatically set to true by the system, so you
+                      dont have to set it
+        -Minimum : paradoxpdf(hash('xhtml',$xhtml))
+
+  Parameters :
+        $xhtml : (required)
+        $pdf_file_name : the filename (without .pdf extension) of the generated PDF file
+                         if none given, "file.pdf" will be used
+        $keys, $subtree_expiry, $expiry , $ignore_content_expiry : controls cache
+                         (see cache-block documentation)
+
+  Example :
+
+  {def  $pdf_file_name  = $module_result.content_info.url_alias|explode('/')|reverse|extract(0)[0]
+        $keys           = array( $uri_string, $current_user.contentobject_id )
+        $subtree_expiry = $module_result.node_id
+        $expiry         = 6000
+        $ignore_content_expiry=false()
+
+        $paradoxpdf_params= hash('xhtml', $xhtml,
+                                 'pdf_file_name', $pdf_file_name,
+                                 'keys', $keys,
+                                 'subtree_expiry', $subtree_expiry,
+                                 'expiry', $expiry,
+                                 'ignore_content_expiry', $ignore_content_expiry )}
+  {paradoxpdf( $paradoxpdf_params )}
+
+PDF cache :
+-----------
+PDF cache uses the template-block cache mechanism. You can customize it just as a template cache block
+to refresh the cash use php/bin/php/ezcache.php with the --purge option
+For more information please refere to online documentation :
+http://ez.no/doc/ez_publish/technical_manual/4_0/reference/template_functions/miscellaneous/cache_block
+
+By default a key is generated using following parameters :
+ -Current Site Access
+ -Current Layout
+ -Actual Requested URI
+ -User Parameters
+ -User Role List
+ -User Limited Assignment List
+ -User Discount List
+
+If a keys parameter is provided through the template operator paradoxpdf it will be appended to this default keys
+for example if you want to cache the PDF content per user :
+
+{def $paradoxpdf_params = hash('xhtml', $xhtml,
+                               'pdf_file_name', $module_result.content_info.url_alias|explode('/')|reverse|extract(0)[0],
+                               'keys', $current_user.contentobject_id)
+}
+
+If you want PDF cache to expire when a content node is updated :
+
+{def $paradoxpdf_params = hash('xhtml', $xhtml,
+                               'pdf_file_name',$module_result.content_info.url_alias|explode('/')|reverse|extract(0)[0],
+                               'subtree_expiry',$module_result.node_id )
+}
+
+Image handling and the Cluster mode
+------------------------------------
+
+By default paradoxpdf handles relative images and CSS URI.
+Just notice that the simplest way to have links and images working in your PDF, is to set the Full (including server name)URI to them.
+The XHTML renderer will try to load them through HTTP. By this way paradoxpdf can handle ressources stored in Cluster mode.
+If you choose this way, please make sure that your server firewall configuration allows outgoing http connections
+
+Note : you have to use "&amp;" instead of "&" to indicate an ampersand in the url of external images or CSS, the rendrer
+       will then be able to load properly the image.
+
+TODO ( Add an extra parameter that sets the base url (SiteUrl) to update all relative urls to absolute by appending this base)
+
+Javascript support :
+--------------------
+
+The Xhtmlrendrer doesn't have Javascript support. However if you want to print Google maps in your PDF files you can use the Google
+Maps Static Api http://code.google.com/apis/maps/documentation/staticmaps/ witch enables using Google maps without Javascript.
+
+
+Forms support :
+--------------------
+
+Form elements are ignored during the conversion process. AcroForm support will be implemented in the next releases of XhtmlRenderer.
+For now, in the PDF template you can replace form inputs by some bordered divs or spans elements.
+
+Access policies:
+-----------------
+
+As paradoxpdf is a template operator, PDF generation will be available to all users having content read access.
+However, for better control, you can enable UseContentPDFPolicy setting
+
+[AccessSettings]
+UseContentPDFPolicy=enabled
+
+In addition of content/read policies ParadoxPDF will check access policies for native PDF function of the content module.
+In the Administration Interface, click the User accounts tab, then the Roles and Policies link.
+Grant access to appropriate users to the PDF function of the content module.
+
+How do you control page size and margin?
+----------------------------------------
+The size property as documented in the CSS3 Paged Media module. Everything in the spec is implemented
+except auto page handling (the default stylesheet currently sets letter-sized paper with a half-inch margin)
+ (See http://www.w3.org/TR/css3-page/#page-size :)
+Example :
+  @page {
+    size: A4 landscape;
+  }
+
+The page box in this example should be rendered on a page sheet size of 297 mm by 210 mm.
+
+-How can I embed custom fonts in the PDF ?
+------------------------------------------
+
+You can force custom font embedding by using font parameters.
+
+First you declare a font-face rule :
+  @font-face {
+      font-family : "font family name"; /*put here font family name example Arial*/
+      src: url(path/to/somefont.ttf);   /*put here relative path to your font*/
+      -fs-pdf-font-embed: embed;        /* defaults to auto (i.e. not embedded) */
+  }
+
+Then you can use the font name as usual :
+
+  div.my_custom_font{
+      font-family : "font family name";
+  }
+
+You can add as many custom font as you want, for each font add a @font-face rule
+
+If Some characters are missing in PDF  try to change font-encoding:
+
+  @font-face {
+      font-family : "font family name";     /*put here font family name example Arial*/
+      src: url(path/to/somefont.ttf);       /*put here relative path to your font*/
+      -fs-pdf-font-embed: embed;            /* defaults to auto (i.e. not embedded) */
+      -fs-pdf-font-encoding:  Identity-H;   /* use an encoding : the folowing encodings  */
+  }
+
+  Available encoding (from itext documentation):
+  ----------------------------------------------
+    Cp1252        Latin 1
+    Cp1250        Latin 2: Eastern Europe
+    Cp1257        Windows Baltic
+    Cp1251        Cyrillic
+    Cp1253        Greek
+    Cp1254        Turkish
+    MacRoman      MacRoman Encoding
+    Identity-H    The Unicode encoding with horizontal writing.
+    Identity-V    The Unicode encoding with vertical writing.
+
+  "IDENTITY_H and IDENTITY_V are not really encodings.
+  They indicate that the unicode character wil be looked up in the font
+  and stored as-is, taking two bytes of space. It's the only way to have
+  Asian fonts and some encodings left out by Adobe such as Thai.
+  For Europe or the Middle-East, it is better to use an available encoding
+  that will store a single byte per character.
+  Fonts with IDENTITY_H or IDENTITY_V will always be embedded
+  no matter what you enter as third parameter."
+
+
+TOC Table of content And PDF Bookmarks:
+---------------------------------------
+In paradoxpdf_layout.tpl uncomment the code that includes paradoxpdf_toc.tpl
+and  paradoxpdf/design/standard/templates/includes/paradoxpdf_bookmarks.tpl
+to enable them.
+
+Check the templates :
+   paradoxpdf/design/standard/templates/includes/paradoxpdf_toc.tpl
+and
+    paradoxpdf/design/standard/templates/includes/paradoxpdf_bookmarks.tpl
+and make your own TOC and PDF bookmarks using eZ Publish template programming
+
+
+
+XhtmlRenderer Extra Style parameters :
+---------------------------------------
+
+_______________________________________________________________________________
+                            |
+        Property            |    Description
+____________________________|__________________________________________________
+-fs-keep-with-inline        |    values keep or auto (the default). If it's
+                            |     keep, FS will try to avoid breaking a block
+                            |     in such a way that only padding and borders
+                            |     appear on a page. This works regardless of
+                            |     how deeply nested the inline content is in
+                            |     the block.
+----------------------------+--------------------------------------------------
+-fs-page-sequence           |    values start or auto (the default) and allows
+                            |     you to limit the scope of the page and pages
+                            |     counters to a portion of the document
+----------------------------+--------------------------------------------------
+-fs-font-metric-src         |    use inside a font-face rule in case the font
+                            |     you want to embed in the PDF has a custom font
+                            |     metrics file; value is the URL to the metrics
+                            |     file for the font
+----------------------------+--------------------------------------------------
+-fs-pdf-font-embed          |    use with the value embed inside a font-face
+                            |     rule to have Flying Saucer embed a font file
+                            |     within a PDF document, avoiding the need to
+                            |     call the addFont() method of the FontResolver
+                            |     class
+----------------------------+--------------------------------------------------
+-fs-pdf-font-encoding       |    use inside a font-face rule to specify the
+                            |     enconding for a custom font you are embedding
+                            |     inside a PDF; takes the name of the encoding
+                            |     as value.
+----------------------------+--------------------------------------------------
+-fs-table-cell-colspan      |    whole number. Replaces use of legacy colspan
+                            |     attribute for table columns.
+----------------------------+--------------------------------------------------
+-fs-table-cell-rowspan      |    whole number. Replaces use of legacy rowspan
+                            |     attribute for table columns.
+----------------------------+--------------------------------------------------
+-fs-table-paginate          |    when used with the value paginate, modifies
+                            |     the table layout algorithm to repeat table
+                            |     headers and footers on subsequent pages and
+                            |     improve the appearance of cells that break
+                            |     across pages (for example by closing and
+                            |     reopening borders), but that's all it does.
+                            |     If a table's minimum width is wider than
+                            |     the page, it will be chopped off.
+----------------------------+--------------------------------------------------
+-fs-text-decoration-extent  |    Either line (default) or block. It
+                            |     controls how text decorations are
+                            |     drawn on a block level element.
+                            |     With line, the spec compliant behavior
+                            |     is used text decoration is drawn across
+                            |     line box. With block, text decoration
+                            |     is drawn across entire content area of block.
+----------------------------+--------------------------------------------------
+
+
+
+Some page selectors From W3C : http://www.w3.org/TR/css3-page/#page-box-page-rule
+---------------------------------------------------------------------------------
+
+_______________________________________________________________________________
+                       |
+    Box                |  Description
+ ______________________|________________________________________________________
+    top-left-corner    |  a fixed-size box filling the area defined by
+                       |  the intersection of the top and left margins
+                       |  of the page box
+-----------------------+-------------------------------------------------------
+    top-left           |  a variable-width box within the area defined
+                       |  by the top margin and adjoining the top-left-corner
+                       |  margin box
+-----------------------+-------------------------------------------------------
+    top-center         |  a variable-width box within the area defined
+                       |  by the top margin, centered on the page area,
+                       |  and between the top-left and top-right margin
+                       |  boxes
+-----------------------+-------------------------------------------------------
+    top-right          |  a variable-width box within the area defined
+                       |  by the top margin and adjoining the top-right-corner
+                       |  margin box
+-----------------------+-------------------------------------------------------
+    top-right-corner   |  a box filling the area defined by the intersection
+                       |  of the top and right margins of the page
+                       |  box
+-----------------------+-------------------------------------------------------
+    left-top           |  a variable-height box within the area defined by
+                       |  the left margin and adjacent to the bottom
+                       |  of the top-left-corner.
+-----------------------+-------------------------------------------------------
+    left-middle        |  a variable-height box in the area defined by
+                       |  the left margin, centered on the page area,
+                       |  and between the left-top and left-bottom
+                       |   margin boxes.
+-----------------------+-------------------------------------------------------
+    left-bottom        |  a variable-height box within the area defined
+                       |  by the left margin and adjacent to the top
+                       |  of the bottom-left-corner.
+-----------------------+-------------------------------------------------------
+    right-top          |  a variable-height box within the area defined
+                       |  by the right margin and adjacent to the bottom
+                       |  of the top-right-corner.
+-----------------------+-------------------------------------------------------
+    right-middle       |  a variable-height box in the area defined by
+                       |  the right margin, centered on the page area,
+                       |  and between the right-top and right-bottom
+                       |  margin boxes.
+-----------------------+-------------------------------------------------------
+    right-bottom       |  a variable-height box within the area defined
+                       |  by the right margin and adjacent to the top
+                       |  of the bottom-right-corner.
+-----------------------+-------------------------------------------------------
+    bottom-left-corner |  a box filling the area defined by the intersection
+                       |  of the bottom and left margins of the page box
+-----------------------+-------------------------------------------------------
+    bottom-left        |  a variable-width box within the area defined
+                       |  by the bottom margin and adjoining the
+                       |  bottom-left-corner margin box
+-----------------------+-------------------------------------------------------
+    bottom-center      |  a variable-width box within the area defined
+                       |  by the bottom margin, centered on the
+                       |  page area, and between the bottom-left
+                       |  and bottom-right margin boxes
+-----------------------+-------------------------------------------------------
+    bottom-right       |  a variable-width box within the area defined
+                       |  by the bottom margin and adjoining the
+                       |  bottom-right corner margin box
+-----------------------+-------------------------------------------------------
+    bottom-right-corner|  a box filling the area defined by the intersection
+                       |  of the bottom and right margins
+                       |  of the page box
+-----------------------+-------------------------------------------------------
+
+Here is a small representation of each zone :
+ _______________________________________
+|     |       |           |       |     |
+| TLC |   TL  |    TC     |  TR   | TRC |
+|_____|_______|___________|_______|_____|
+|     |                           |     |
+|     |                           |     |
+| LT  |                           | RT  |
+|     |                           |     |
+|_____|                           |_____|
+|     |                           |     |
+|     |                           |     |
+| LM  |                           | RM  |
+|     |                           |     |
+|_____|                           |_____|
+|     |                           |     |
+|     |                           |     |
+| LB  |                           | RB  |
+|     |                           |     |
+|_____|___________________________|_____|
+|     |       |           |       |     |
+| BLC |   BL  |    BC     |  BR   | BRC |
+|_____|_______|___________|_______|_____|
+
+
+
+Debug and Issues:
+-----------------
+- Checkout the latest version of extension
+- Make sure that folder var/paradoxpdf is writeable (chmod 775)
+- Enable debug in paradox/settings/paradoxpdf.ini
+- Clear the cache (with --purge option)
+- Regenerate PDF  content/view/pdf/<node_id>
+- Post the output result logged in var/log/paradoxpdf.log on the forum http://projects.ez.no/paradoxpdf/forum/issues
