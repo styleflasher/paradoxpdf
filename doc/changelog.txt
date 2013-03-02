@@ -1,3 +1,10 @@
+V 2.2 :
+-------
+
+    * Updated jar binary to use the latest flying-saucer version
+    * Fixed toc urls links
+    * Fixed Empty PDF file after cache purge
+
 V 2.1.5 :
 --------
     * Fixed blank page after cache purge (caused by missing translation string)
