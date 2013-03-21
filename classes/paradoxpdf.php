@@ -347,7 +347,7 @@ class ParadoxPDF
      */
     static function sanitize($string)
     {
-        return eZURLAliasML::convertToAlias($sanitized);
+        return eZURLAliasML::convertToAlias($string);
     }
 
 }
