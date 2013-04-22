@@ -208,19 +208,8 @@ class ParadoxPDF
      * @param $expiry  Not used
      * @return void
      */
-    public function flushPDF($data, $pdf_file_name = 'file', $size, $mtime, $expiry)
+    public function flushPDF($data, $pdf_file_name = 'file', $size, $mtime= false, $expiry = false)
     {
-
-        //Fixing https issues by forcing file download
-        $contentType = 'application/octet-stream';
-        $userAgent = eZSys::serverVariable('HTTP_USER_AGENT');
-
-        if (preg_match('%Opera(/| )([0-9].[0-9]{1,2})%', $userAgent)) {
-            $contentType = 'application/octetstream';
-        } elseif (preg_match('/MSIE ([0-9].[0-9]{1,2})/', $userAgent)) {
-            $contentType = 'application/force-download';
-
-        }
 
         // sanitize pdf_file_name to prevent file donwload injection attacks
         $pdf_file_name = self::sanitize($pdf_file_name);
@@ -228,15 +217,19 @@ class ParadoxPDF
         ob_clean();
 
         header('X-Powered-By: eZ Publish - ParadoxPDF');
-        header('Content-Type: ' . $contentType);
-        header('Expires: Sat, 03 Jan 1970 00:00:00 GMT');
-        header('Cache-Control: private');
-        header('Pragma: private', false);
-        header('Content-Disposition: attachment; filename="' . $pdf_file_name . '.pdf"');
+        // Fixes problems with IE when opening a file directly
+        header( "Pragma: " );
+        header( "Cache-Control: " );
+        // Last-Modified header cannot be set, otherwise browser like FF will fail while resuming a paused download
+        // because it compares the value of Last-Modified headers between requests.
+        header( "Last-Modified: " );
+        /* Set cache time out to 10 minutes, this should be good enough to work  around an IE bug */
+        header( "Expires: ". gmdate( 'D, d M Y H:i:s', time() + 600 ) . ' GMT' );
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $pdf_file_name . '"');
         header('Content-Length: ' . $size);
-        header('Content-Transfer-Encoding: binary');
-        header('Accept-Ranges: bytes');
-        header('Connection: close');
+        header( 'Content-Transfer-Encoding: binary' );
+        header( 'Accept-Ranges: bytes' );
 
         ob_end_clean();
 
@@ -347,7 +340,10 @@ class ParadoxPDF
      */
     static function sanitize($string)
     {
-        return eZURLAliasML::convertToAlias($string);
+        $infos = pathinfo($string);
+        $fileName = $infos['filename'].'.pdf';
+
+        return eZURLAliasML::convertToAlias($fileName);
     }
 
 }
