@@ -46,7 +46,6 @@ class ParadoxPDF
         $this->javaExec = $paradoxPDFINI->variable('BinarySettings', 'JavaExecutable');
         $this->cacheTTL = $paradoxPDFINI->variable('CacheSettings', 'TTL');
         $this->paradoxPDFExec = eZSys::rootDir().'/extension/paradoxpdf/bin/paradoxpdf.jar';
-
         $this->tmpDir = eZDir::path(array(eZINI::instance()->variable('FileSettings', 'VarDir'), 'paradoxpdf'));
     }
 
@@ -152,10 +151,8 @@ class ParadoxPDF
         }
 
         $rand = md5('paradoxpdf' . getmypid() . mt_rand());
-        //$tmpXHTMLFile = eZDir::path(array($this->tmpDir, "$rand.xhtml"));
-        //$tmpPDFFile = eZDir::path(array($this->tmpDir, "$rand.pdf"));
-        $tmpXHTMLFile = eZSys::rootDir()."/".$this->tmpDir."/"."$rand.xhtml";
-        $tmpPDFFile = eZSys::rootDir()."/".$this->tmpDir."/"."$rand.pdf";
+        $tmpXHTMLFile = eZSys::rootDir().DIRECTORY_SEPARATOR.$this->tmpDir.DIRECTORY_SEPARATOR."$rand.xhtml";
+        $tmpPDFFile = eZSys::rootDir().DIRECTORY_SEPARATOR.$this->tmpDir.DIRECTORY_SEPARATOR."$rand.pdf";
 
         //fix relative urls to match ez root directory
         $xhtml = $this->fixURL($xhtml);
