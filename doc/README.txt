@@ -77,3 +77,4 @@ Where to get more help
 ----------------------
 - look in the extension doc folder
 - look at project page/forum :http://projects.ez.no/paradoxpdf/forum
+
